@@ -289,6 +289,7 @@ export function cacheContingentValues(id: string, fieldInfos: any, itemTemplate:
  * @returns An updated instance of the fieldInfos
  */
 export function cacheIndexes(layer: any, fieldInfos: any): any {
+  /* istanbul ignore else */
   if (Array.isArray(layer.indexes)) {
     const oidField = layer.objectIdField;
     const guidField = layer.globalIdField;

@@ -1930,6 +1930,13 @@ describe("Module `restHelpers`: common REST utility functions shared across pack
           subtypeField: "SubtypeField",
           defaultSubtypeCode: "0",
           subtypes: [{ a: "A" }],
+          indexes: [{ name: "index" }],
+        },
+        1: {
+          b: "b",
+          type: "B",
+          id: 1,
+          indexes: [{ name: "index2" }],
         },
       };
 
@@ -1940,7 +1947,7 @@ describe("Module `restHelpers`: common REST utility functions shared across pack
         authentication: MOCK_USER_SESSION,
       };
 
-      const updates: any[] = restHelpers.getLayerUpdates(args, false);
+      const updates: any[] = restHelpers.getLayerUpdates(args, true);
 
       const _object: any = Object.assign({}, objects[0]);
       delete _object.type;
@@ -1995,6 +2002,7 @@ describe("Module `restHelpers`: common REST utility functions shared across pack
           params: {
             addToDefinition: {
               subtypes: [{ a: "A" }],
+              indexes: [{ name: "index" }]
             },
           },
           args,
@@ -2025,6 +2033,15 @@ describe("Module `restHelpers`: common REST utility functions shared across pack
           params: {
             addToDefinition: {
               contingentValuesDefinition: contingentValues.contingentValuesDefinition,
+            },
+          },
+          args,
+        },
+        {
+          url: adminUrl + "1/addToDefinition",
+          params: {
+            addToDefinition: {
+              indexes: [{ name: "index2" }]
             },
           },
           args,

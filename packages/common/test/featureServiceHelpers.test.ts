@@ -19,6 +19,7 @@
  */
 
 import {
+  cacheIndexes,
   getFeatureServiceRelatedRecords,
   templatize,
   deleteViewProps,
@@ -556,7 +557,7 @@ describe("Module `featureServiceHelpers`: utility functions for feature-service 
     it("should not fail with undefined", () => {
       let fieldInfos: any = {};
       const layer: any = undefined;
-      fieldInfos = cacheFieldInfos(layer, fieldInfos, true);
+      fieldInfos = cacheFieldInfos(layer, fieldInfos, true, false);
       expect(layer).toBeUndefined();
       expect(fieldInfos).toEqual({});
     });
@@ -564,7 +565,7 @@ describe("Module `featureServiceHelpers`: utility functions for feature-service 
     it("should not fail without key properties on the layer", () => {
       let fieldInfos: any = {};
       const layer: any = {};
-      fieldInfos = cacheFieldInfos(layer, fieldInfos, false);
+      fieldInfos = cacheFieldInfos(layer, fieldInfos, false, false);
       expect(layer).toEqual({});
       expect(fieldInfos).toEqual({});
     });
@@ -676,9 +677,53 @@ describe("Module `featureServiceHelpers`: utility functions for feature-service 
         },
       };
 
-      fieldInfos = cacheFieldInfos(layer, fieldInfos, false);
+      fieldInfos = cacheFieldInfos(layer, fieldInfos, false, true);
       expect(layer).toEqual(expectedLayer);
       expect(fieldInfos).toEqual(expectedFieldInfos);
+    });
+  });
+
+  describe("cacheIndexes", () => {
+    it("should cache specific indexes and remove them from the layer", () => {
+      const layer = {
+        id: "0",
+        objectIdField: "objectid",
+        globalIdField: "globalid",
+        indexes: [
+          {
+            isUnique: true,
+            fields: "B",
+            indexType: "",
+            name: "B_Unique",
+          },
+          {
+            isUnique: true,
+            fields: "objectid",
+            indexType: "",
+            name: "C_objectid",
+          },
+          {
+            isUnique: false,
+            fields: "A",
+            indexType: "FullText",
+            name: "A _ FullText",
+          },
+        ],
+      } as any;
+
+      const id = "0";
+      let fieldInfos: any = {};
+      fieldInfos[id] = {};
+      fieldInfos = cacheIndexes(layer, fieldInfos);
+
+      const expectedLayer = {
+        id: "0",
+        objectIdField: "objectid",
+        globalIdField: "globalid",
+      };
+      expect(layer).toEqual(expectedLayer);
+      expect(fieldInfos["0"].indexes.length).toEqual(2);
+      expect(fieldInfos["0"].indexes[1].name).toEqual("A_FullText");
     });
   });
 
@@ -3607,7 +3652,7 @@ describe("Module `featureServiceHelpers`: utility functions for feature-service 
       const layer1 = mockItems.getAGOLLayerOrTable(1, "ROW Permit Comment", "Table", [
         mockItems.createAGOLRelationship(0, 1, "esriRelRoleDestination"),
       ]);
-      const fieldInfos = cacheFieldInfos(layer1, cacheFieldInfos(layer0, {}, false), false);
+      const fieldInfos = cacheFieldInfos(layer1, cacheFieldInfos(layer0, {}, false, false), false, false);
 
       Object.keys(fieldInfos).forEach((k) => {
         fieldInfos[k].sourceFields[1].visible = false;
