@@ -219,7 +219,7 @@ export function deleteViewProps(layer: any) {
  * @param isView When true the current layer is a view and does not need to cache subtype details
  * @returns An updated instance of the fieldInfos
  */
-export function cacheFieldInfos(layer: any, fieldInfos: any, isView: boolean): any {
+export function cacheFieldInfos(layer: any, fieldInfos: any, isView: boolean, isPortal: boolean): any {
   // cache the source fields as they are in the original source
   if (layer && layer.fields) {
     fieldInfos[layer.id] = {
@@ -228,7 +228,7 @@ export function cacheFieldInfos(layer: any, fieldInfos: any, isView: boolean): a
       id: layer.id,
     };
     /* istanbul ignore else */
-    if (!isView) {
+    if (!isView && isPortal) {
       fieldInfos[layer.id].subtypes = layer.subtypes;
       fieldInfos[layer.id].subtypeField = layer.subtypeField;
       fieldInfos[layer.id].defaultSubtypeCode = layer.defaultSubtypeCode;
@@ -252,7 +252,7 @@ export function cacheFieldInfos(layer: any, fieldInfos: any, isView: boolean): a
   };
 
   /* istanbul ignore else */
-  if (!isView) {
+  if (!isView && isPortal) {
     props["subtypes"] = true;
     props["subtypeField"] = true;
     props["defaultSubtypeCode"] = true;
@@ -277,6 +277,30 @@ export function cacheContingentValues(id: string, fieldInfos: any, itemTemplate:
   const contingentValues = getProp(itemTemplate, "properties.contingentValues");
   if (contingentValues && contingentValues[id]) {
     fieldInfos[id]["contingentValues"] = contingentValues[id];
+  }
+  return fieldInfos;
+}
+
+/**
+ * Cache the stored contingent values so we can add them in subsequent addToDef calls
+ *
+ * @param layer The current layer to check indexes on
+ * @param fieldInfos The object that stores the cached field infos
+ * @returns An updated instance of the fieldInfos
+ */
+export function cacheIndexes(layer: any, fieldInfos: any): any {
+  if (Array.isArray(layer.indexes)) {
+    const oidField = layer.objectIdField;
+    const guidField = layer.globalIdField;
+    fieldInfos[layer.id].indexes = layer.indexes.filter((i) => {
+      if ((i.isUnique && i.fields !== oidField && i.fields !== guidField) || i.indexType === "FullText") {
+        if (i.name) {
+          i.name = i.name.replaceAll(" ", "");
+        }
+        return i;
+      }
+    });
+    delete layer.indexes;
   }
   return fieldInfos;
 }
@@ -825,7 +849,7 @@ export function addFeatureServiceLayersAndTables(
                 updates
                   .reduce((prev, update) => {
                     return prev.then(() => {
-                      return getRequest(update);
+                      return getRequest(update, false, false, templateDictionary.isPortal);
                     });
                   }, Promise.resolve(null))
                   .then(
@@ -895,10 +919,16 @@ export function addFeatureServiceDefinition(
         let item = toAdd.item;
         const originalId = item.id;
         const isView = itemTemplate.properties.service.isView;
-        fieldInfos = cacheFieldInfos(item, fieldInfos, isView);
+        const isPortal = templateDictionary.isPortal;
+        fieldInfos = cacheFieldInfos(item, fieldInfos, isView, isPortal);
 
         // cache the values to be added in seperate addToDef calls
         fieldInfos = cacheContingentValues(item.id, fieldInfos, itemTemplate);
+
+        // cache specific field indexes when deploying to ArcGIS Enterprise portal
+        if (isPortal) {
+          fieldInfos = cacheIndexes(item, fieldInfos);
+        }
 
         /* istanbul ignore else */
         if (item.isView) {
@@ -929,7 +959,7 @@ export function addFeatureServiceDefinition(
           }
         }
         /* istanbul ignore else */
-        if (templateDictionary.isPortal) {
+        if (isPortal) {
           item = _updateForPortal(item, itemTemplate, templateDictionary);
         }
 

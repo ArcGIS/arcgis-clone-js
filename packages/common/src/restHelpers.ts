@@ -956,7 +956,7 @@ export function getLayerUpdates(args: IPostProcessArgs, isPortal: boolean): IUpd
   });
 
   /* istanbul ignore else */
-  if (subtypeUpdates.length > 0) {
+  if (subtypeUpdates.length > 0 && isPortal) {
     subtypeUpdates.forEach((subtypeUpdate) => {
       updates.push(
         _getUpdate(adminUrl + subtypeUpdate.id, null, { subtypeField: subtypeUpdate.subtypeField }, args, "update"),
@@ -1012,6 +1012,34 @@ export function getLayerUpdates(args: IPostProcessArgs, isPortal: boolean): IUpd
         updates.push(_getUpdate(adminUrl + conUpdate.id, null, conUpdate.contingentValues, args, "add"));
       });
     }
+  }
+
+  // issue: https://devtopia.esri.com/WebGIS/solution-deployment-apps/issues/273
+  // For portal only...add specific indexes with existing supplementary addToDefinition call if it exists
+  // or with a new addToDefinition call if one doesn't already exist
+  if (isPortal) {
+    Object.keys(args.objects).forEach((id) => {
+      const obj: any = Object.assign({}, args.objects[id]);
+      let update;
+      if (Array.isArray(obj.indexes) && obj.indexes.length > 0) {
+        const layerHasExistingAdd = updates.some((u) => {
+          if (u.url.indexOf(`${id}/addToDefinition`) > -1) {
+            update = u;
+            return true;
+          }
+        });
+        if (layerHasExistingAdd) {
+          // append to existing addToDef
+          update.params.addToDefinition = {
+            ...update.params.addToDefinition,
+            indexes: obj.indexes,
+          };
+        } else {
+          // create new addToDef
+          updates.push(_getUpdate(checkUrlPathTermination(adminUrl) + id, null, { indexes: obj.indexes }, args, "add"));
+        }
+      }
+    });
   }
   return updates.length === 1 ? [] : updates;
 }
@@ -1101,7 +1129,12 @@ export function _sortRelationships(layers: any[], tables: any[], relUpdates: any
  * @private
  */
 /* istanbul ignore else */
-export function getRequest(update: IUpdate, skipRetry: boolean = false, useAsync: boolean = false): Promise<void> {
+export function getRequest(
+  update: IUpdate,
+  skipRetry: boolean = false,
+  useAsync: boolean = false,
+  isPortal: boolean = false,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const options: IRequestOptions = {
       params: update.params,
@@ -1124,7 +1157,7 @@ export function getRequest(update: IUpdate, skipRetry: boolean = false, useAsync
       },
       (e: any) => {
         if (!skipRetry) {
-          getRequest(update, true, true).then(
+          getRequest(update, true, true, isPortal).then(
             () => resolve(),
             (e) => reject(e),
           );
