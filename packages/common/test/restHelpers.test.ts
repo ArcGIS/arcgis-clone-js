@@ -2002,7 +2002,7 @@ describe("Module `restHelpers`: common REST utility functions shared across pack
           params: {
             addToDefinition: {
               subtypes: [{ a: "A" }],
-              indexes: [{ name: "index" }]
+              indexes: [{ name: "index" }],
             },
           },
           args,
@@ -2041,7 +2041,7 @@ describe("Module `restHelpers`: common REST utility functions shared across pack
           url: adminUrl + "1/addToDefinition",
           params: {
             addToDefinition: {
-              indexes: [{ name: "index2" }]
+              indexes: [{ name: "index2" }],
             },
           },
           args,
