@@ -29,9 +29,12 @@ import {
   generateSourceThumbnailUrl,
   getBlobAsFile,
   getFilenameFromUrl,
+  getGroup,
   getGroupBase,
   getGroupContents,
+  getItem,
   getItemBase,
+  getItemDataAsJson,
   getPortal,
   getSubgroupIds,
   getUser,
@@ -43,6 +46,7 @@ import {
   IItem,
   removeItem,
   sanitizeJSON,
+  searchItems,
   setLocationTrackingEnabled,
   UserSession,
 } from "@esri/solution-common";
@@ -97,7 +101,22 @@ export async function createSolution(
           createOptions.itemIds = [sourceId];
           getItemBase(sourceId, srcAuthentication).then(
             // Update the createOptions with values from the item
-            (itemBase) => resolve(_applySourceToCreateOptions(createOptions, itemBase, srcAuthentication, false)),
+            (itemBase) => {
+              if (
+                itemBase?.type === "Solution" &&
+                itemBase?.typeKeywords &&
+                itemBase?.typeKeywords.includes("Deployed")
+              ) {
+                _updateCreateOptionForReDeployedTemplate(sourceId, srcAuthentication, createOptions, itemBase).then(
+                  (updatedCreateOptions) => {
+                    resolve(_applySourceToCreateOptions(updatedCreateOptions, itemBase, srcAuthentication, false));
+                  },
+                  reject,
+                );
+              } else {
+                resolve(_applySourceToCreateOptions(createOptions, itemBase, srcAuthentication, false));
+              }
+            },
             reject,
           );
         });
@@ -347,4 +366,63 @@ export function _getDeploymentProperty(desiredTagPrefix: string, tags: string[])
   } else {
     return null;
   }
+}
+
+export async function _updateCreateOptionForReDeployedTemplate(
+  sourceId: string,
+  authentication: UserSession,
+  createOptions: ICreateSolutionOptions,
+  itemBase: IItem,
+): Promise<ICreateSolutionOptions> {
+  try {
+    const existingItems = [];
+
+    const itemData = await getItemDataAsJson(sourceId, authentication);
+    //Check if any of the item ids is deleted, if so remove from the list
+    for (const template of itemData.templates) {
+      try {
+        if (template.type === "Group") {
+          const exists = await getGroup(template.itemId, { authentication: authentication });
+          if (exists) {
+            existingItems.push(exists.id);
+          }
+        } else {
+          const exists = await getItem(template.itemId, { authentication: authentication });
+          if (exists) {
+            existingItems.push(exists.id);
+          }
+        }
+      } catch (error) {
+        // Handle the error if item has been deleted
+        console.error("An error occurred while fetching item:", template.itemId);
+        console.log(template);
+      }
+    }
+    //Add all valid items to createOptions items list
+    createOptions.itemIds = existingItems.map((template) => {
+      return template.itemId;
+    });
+
+    try {
+      //query the folder
+      const response = await searchItems({
+        q: `ownerfolder:${itemBase.ownerFolder}`,
+        authentication: authentication,
+      });
+
+      response.results.forEach((result) => {
+        // See if there are new items in the folder, if so add them to the itemIds
+        if (!createOptions.itemIds.includes(result.id) && result.type !== "Solution") {
+          createOptions.itemIds.push(result.id);
+        }
+      });
+    } catch (error) {
+      // Handle any errors
+      console.error("An error occurred during the search:", error);
+    }
+  } catch (error) {
+    console.error("An error occurred during get item data:", error);
+  }
+
+  return createOptions;
 }

@@ -54,15 +54,27 @@ function go () {
     portal: srcPortal
   });
 
-  // Dest credentials
-  const destHtmlValue = htmlUtil.getHTMLValue("destPortal");
+  // Dest credentials  (same as Source to keep demo app working and beahvior similiar to Creation app)
+  const destHtmlValue = htmlUtil.getHTMLValue("srcPortal");
   const destPortalStr = destHtmlValue.endsWith('/') ? destHtmlValue.slice(0, -1) : destHtmlValue;
   const destPortal = (destPortalStr || "https://www.arcgis.com") + "/sharing/rest";
   const destCreds = new common.UserSession({
-    username: htmlUtil.getHTMLValue("destUsername"),
-    password: htmlUtil.getHTMLValue("destPassword"),
+    username: htmlUtil.getHTMLValue("srcUsername"),
+    password: htmlUtil.getHTMLValue("srcPassword"),
     portal: destPortal
   });
+
+  /*
+    // Dest credentials  (uncomment this and html if you want to target different org for test purproses)
+    const destHtmlValue = htmlUtil.getHTMLValue("destPortal");
+    const destPortalStr = destHtmlValue.endsWith('/') ? destHtmlValue.slice(0, -1) : destHtmlValue;
+    const destPortal = (destPortalStr || "https://www.arcgis.com") + "/sharing/rest";
+    const destCreds = new common.UserSession({
+      username: htmlUtil.getHTMLValue("destUsername"),
+      password: htmlUtil.getHTMLValue("destPassword"),
+      portal: destPortal
+    });
+  */
 
   // Create!
   main.createSolution(
@@ -73,10 +85,10 @@ function go () {
       document.getElementById("output").innerHTML = "Creating..." + percentDone.toFixed().toString() + "%";
     },
     subgroupIds
-  ).then(function (html){
-      reportElapsedTime(startTime);
-      document.getElementById("output").innerHTML = html;
-    },
+  ).then(function(html) {
+    reportElapsedTime(startTime);
+    document.getElementById("output").innerHTML = html;
+  },
     error => {
       var message = error?.error || JSON.stringify(error) || "Unspecified error";
       if (error.itemIds) {
