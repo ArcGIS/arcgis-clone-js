@@ -375,39 +375,32 @@ export async function _updateCreateOptionForReDeployedTemplate(
   itemBase: IItem,
 ): Promise<ICreateSolutionOptions> {
   try {
-    const existingItems = [];
-
     const itemData = await getItemDataAsJson(sourceId, authentication);
+
+    const checkExistsList = [];
     //Check if any of the item ids is deleted, if so remove from the list
     for (const template of itemData.templates) {
-      try {
-        if (template.type === "Group") {
-          const exists = await getGroup(template.itemId, { authentication: authentication });
-          if (exists) {
-            existingItems.push(exists.id);
-          }
-        } else {
-          const exists = await getItem(template.itemId, { authentication: authentication });
-          if (exists) {
-            existingItems.push(exists.id);
-          }
-        }
-      } catch (error) {
-        // Handle the error if item has been deleted
-        console.error("An error occurred while fetching item:", template.itemId);
-        console.log(template);
+      if (template.type === "Group") {
+        checkExistsList.push(getGroup(template.itemId, { authentication: authentication }));
+      } else {
+        checkExistsList.push(getItem(template.itemId, { authentication: authentication }));
       }
     }
+    const itemFetches = await Promise.allSettled(checkExistsList);
+
     //Add all valid items to createOptions items list
-    createOptions.itemIds = existingItems.map((template) => {
-      return template.itemId;
-    });
+    createOptions.itemIds = itemFetches
+      .filter((item: any) => item.status === "fulfilled")
+      .map((item: any) => item.value.id);
 
     try {
       //query the folder
       const response = await searchItems({
         q: `ownerfolder:${itemBase.ownerFolder}`,
         authentication: authentication,
+        num: 100,
+        sortField: "modified",
+        sortOrder: "desc",
       });
 
       response.results.forEach((result) => {
