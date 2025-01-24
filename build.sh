@@ -9,6 +9,7 @@ cd demos/compareSolutions && npm install ; cd ../..
 cd demos/copyItemInfo && npm install ; cd ../..
 cd demos/copySolutions && npm install ; cd ../..
 cd demos/createSolution && npm install ; cd ../..
+cd demos/recreateSolution && npm install ; cd ../..
 cd demos/deleteSolution && npm install ; cd ../..
 cd demos/deploySolution && npm install ; cd ../..
 cd demos/getItemInfo && npm install ; cd ../..
@@ -61,6 +62,7 @@ cd demos/compareSolutions && npm run build ; cd ../..
 cd demos/copyItemInfo && npm run build ; cd ../..
 cd demos/copySolutions && npm run build ; cd ../..
 cd demos/createSolution && npm run build ; cd ../..
+cd demos/recreateSolution && npm run build ; cd ../..
 cd demos/deleteSolution && npm run build ; cd ../..
 cd demos/deploySolution && npm run build ; cd ../..
 cd demos/getItemInfo && npm run build ; cd ../..

@@ -1,0 +1,27 @@
+{
+  "name": "recreateSolution",
+  "version": "5.8.2",
+  "description": "recreateSolution demo",
+  "author": "Esri",
+  "license": "Apache-2.0",
+  "private": true,
+  "scripts": {
+    "build": "webpack --mode=production --node-env=production",
+    "getupdates": "npm-check-updates --upgrade",
+    "watch": "webpack --watch"
+  },
+  "devDependencies": {
+    "css-loader": "^7.1.2",
+    "html-webpack-plugin": "^5.6.0",
+    "npm-check-updates": "^17.1.0",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.1",
+    "webpack": "^5.94.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@esri/solution-common": "file:../../packages/common/dist",
+    "@esri/solution-creator": "file:../../packages/creator/dist"
+  },
+  "gitHead": "2ec5fb241f432832e9d191bfcf118a50b621491d"
+}

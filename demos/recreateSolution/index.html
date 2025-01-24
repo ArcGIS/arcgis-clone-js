@@ -36,12 +36,12 @@
 </head>
 
 <body>
-  <h3>Create a Solution</h3>
-  <p>Create a solution item from the contents of a group or from a single item and its dependencies.</p>
+  <h3>Recreate a Solution</h3>
+  <p>Create a solution item from a previously deployed solution.</p>
 
   <div id="container" style="display:none">
     <div id="input">
-      <label for="itemOrGroupId">Enter an Item or Group ID:</label>
+      <label for="itemOrGroupId">Enter Item ID from a deployed solution:</label>
       <input class="form-control" type="text" id="itemOrGroupId">
 
       <br /><br />
@@ -58,7 +58,7 @@
 
       <br /><br />
 
-      <div class="section-title">Credentials in source organization</div>
+      <div class="section-title">Credentials for organization</div>
 
       <div class="labeledItem">
         <label for="srcUsername">Username:&nbsp;</label>
@@ -72,24 +72,6 @@
         <label for="srcPortal">Portal:&nbsp;</label>
         <input type="text" id="srcPortal" style="width:256px" placeholder="https://www.arcgis.com">
       </div>
-
-      <br /><br />
-
-      <div class="section-title">Credentials in destination organization</div>
-
-      <div class="labeledItem">
-        <label for="destUsername">Username:&nbsp;</label>
-        <input type="text" id="destUsername">
-      </div>
-      <div class="labeledItem">
-        <label for="destPassword">Password:&nbsp;</label>
-        <input type="password" id="destPassword">
-      </div>
-      <div class="labeledItem">
-        <label for="destPortal">Portal:&nbsp;</label>
-        <input type="text" id="destPortal" style="width:256px" placeholder="https://www.arcgis.com">
-      </div>
-
       <br /><br />
       <button class="btn btn-default" onclick="goFcn()">Create Solution</button>
     </div>

@@ -24,6 +24,11 @@ pushd demos\createSolution
 call npm install
 popd
 
+pushd demos\recreateSolution
+call npm install
+popd
+
+
 pushd demos\deleteSolution
 call npm install
 popd
@@ -130,6 +135,10 @@ call npm run build
 popd
 
 pushd demos\createSolution
+call npm run build
+popd
+
+pushd demos\recreateSolution
 call npm run build
 popd
 
