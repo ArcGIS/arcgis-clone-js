@@ -393,8 +393,20 @@ export async function _updateCreateOptionForReDeployedTemplate(
       .filter((item: any) => item.status === "fulfilled")
       .map((item: any) => item.value.id);
 
+    //check if any new groups were made and store in the tag
+    const newGroups = itemBase.tags.filter((str) => str.includes("group.")).map((str) => str.split(".")[1]);
+
+    if (newGroups.length > 0) {
+      newGroups.forEach((groupId) => {
+        // If id does not already exist, push it to createOptions, itemids list.
+        if (!createOptions.itemIds.includes(groupId)) {
+          createOptions.itemIds.push(groupId);
+        }
+      });
+    }
+
+    //query the folder for new items
     try {
-      //query the folder
       const response = await searchItems({
         q: `ownerfolder:${itemBase.ownerFolder}`,
         authentication: authentication,
