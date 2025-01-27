@@ -108,8 +108,8 @@ export async function createSolution(
                 itemBase?.typeKeywords.includes("Deployed")
               ) {
                 _updateCreateOptionForReDeployedTemplate(sourceId, srcAuthentication, createOptions, itemBase).then(
-                  (updatedCreateOptions) => {
-                    resolve(_applySourceToCreateOptions(updatedCreateOptions, itemBase, srcAuthentication, false));
+                  (modifiedCreateOptions) => {
+                    resolve(_applySourceToCreateOptions(modifiedCreateOptions, itemBase, srcAuthentication, false));
                   },
                   reject,
                 );
@@ -425,6 +425,15 @@ export async function _updateCreateOptionForReDeployedTemplate(
       // Handle any errors
       console.error("An error occurred during the search:", error);
     }
+
+    //switch thhe Deployed keyword to Template
+    const deployedIndex = itemBase.typeKeywords.indexOf("Deployed");
+    if (deployedIndex !== -1) {
+      itemBase.typeKeywords[deployedIndex] = "Template";
+    }
+
+    //remove any tags with group. since it's now a new solution.
+    itemBase.tags = itemBase.tags.filter((tag) => !tag.includes("group."));
   } catch (error) {
     console.error("An error occurred during get item data:", error);
   }
