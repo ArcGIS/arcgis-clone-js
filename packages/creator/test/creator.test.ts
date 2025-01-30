@@ -866,7 +866,7 @@ describe("Module `creator`", () => {
       const url = utils.PORTAL_SUBSET.restUrl + "/content/users/casey/addItem";
       const expectedSolutionId = "sln1234567890";
       const expectedFetchBody =
-        "f=json&title=xfakeidx&type=Solution&snippet=&description=&properties=" +
+        "f=json&title=xfakeidx&type=Solution&accessInformation=&snippet=&description=&properties=" +
         encodeURIComponent(JSON.stringify({ schemaVersion: common.CURRENT_SCHEMA_VERSION })) +
         "&tags=&typeKeywords=Solution%2CTemplate%2Csolutionid-guid%2Csolutionversion-1.0" +
         "&text=%7B%22metadata%22%3A%7B%7D%2C%22templates%22%3A%5B%5D%7D&token=fake-token";
@@ -918,6 +918,7 @@ describe("Module `creator`", () => {
         "f=json&title=" +
           encodeURIComponent(options.title as any) +
           "&type=Solution" +
+          "&accessInformation=" +
           "&snippet=" +
           encodeURIComponent(options.snippet as any) +
           "&description=" +
@@ -943,7 +944,7 @@ describe("Module `creator`", () => {
       const authentication: common.UserSession = MOCK_USER_SESSION;
       const url = utils.PORTAL_SUBSET.restUrl + "/content/users/casey/addItem";
       const expectedFetchBody =
-        "f=json&title=xfakeidx&type=Solution&snippet=&description=&properties=" +
+        "f=json&title=xfakeidx&type=Solution&accessInformation=&snippet=&description=&properties=" +
         encodeURIComponent(JSON.stringify({ schemaVersion: common.CURRENT_SCHEMA_VERSION })) +
         "&tags=&typeKeywords=Solution%2CTemplate%2Csolutionid-guid%2Csolutionversion-1.0" +
         "&text=%7B%22metadata%22%3A%7B%7D%2C%22templates%22%3A%5B%5D%7D&token=fake-token";
@@ -988,6 +989,7 @@ describe("Module `creator`", () => {
           thumbnailurl: opts.thumbnailurl,
           tags: [],
           typeKeywords: ["Solution", "Template", "solutionid-3ef", "solutionversion-1.0", "foo"],
+          accessInformation: "",
         } as any,
         data: {
           metadata: {},
@@ -1015,6 +1017,7 @@ describe("Module `creator`", () => {
           },
           thumbnailurl: "",
           tags: [],
+          accessInformation: "",
         } as any,
         data: {
           metadata: {},
@@ -1046,6 +1049,7 @@ describe("Module `creator`", () => {
           thumbnailurl: opts.thumbnailurl,
           tags: [],
           typeKeywords: ["Solution", "Template", "solutionid-3ef", "solutionversion-1.0", "bar"],
+          accessInformation: "",
         } as any,
         data: {
           metadata: {},
