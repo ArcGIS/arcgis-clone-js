@@ -869,6 +869,7 @@ describe("Module `creator`", () => {
         "f=json&title=xfakeidx&type=Solution&accessInformation=&snippet=&description=&properties=" +
         encodeURIComponent(JSON.stringify({ schemaVersion: common.CURRENT_SCHEMA_VERSION })) +
         "&tags=&typeKeywords=Solution%2CTemplate%2Csolutionid-guid%2Csolutionversion-1.0" +
+        "&categories=&licenseInfo=" +
         "&text=%7B%22metadata%22%3A%7B%7D%2C%22templates%22%3A%5B%5D%7D&token=fake-token";
 
       fetchMock.post(url, utils.getSuccessResponse({ id: expectedSolutionId, folder: null }));
@@ -936,6 +937,7 @@ describe("Module `creator`", () => {
             .concat(options.additionalTypeKeywords as any)
             .map(encodeURIComponent)
             .join("%2C") +
+          "&categories=&licenseInfo=" +
           "&text=%7B%22metadata%22%3A%7B%7D%2C%22templates%22%3A%5B%5D%7D&token=fake-token",
       );
     });
@@ -947,6 +949,7 @@ describe("Module `creator`", () => {
         "f=json&title=xfakeidx&type=Solution&accessInformation=&snippet=&description=&properties=" +
         encodeURIComponent(JSON.stringify({ schemaVersion: common.CURRENT_SCHEMA_VERSION })) +
         "&tags=&typeKeywords=Solution%2CTemplate%2Csolutionid-guid%2Csolutionversion-1.0" +
+        "&categories=&licenseInfo=" +
         "&text=%7B%22metadata%22%3A%7B%7D%2C%22templates%22%3A%5B%5D%7D&token=fake-token";
 
       fetchMock.post(url, utils.getFailureResponse());
@@ -990,6 +993,8 @@ describe("Module `creator`", () => {
           tags: [],
           typeKeywords: ["Solution", "Template", "solutionid-3ef", "solutionversion-1.0", "foo"],
           accessInformation: "",
+          categories: [],
+          licenseInfo: ""
         } as any,
         data: {
           metadata: {},
@@ -1018,6 +1023,8 @@ describe("Module `creator`", () => {
           thumbnailurl: "",
           tags: [],
           accessInformation: "",
+          categories: [],
+          licenseInfo: ""
         } as any,
         data: {
           metadata: {},
@@ -1050,6 +1057,8 @@ describe("Module `creator`", () => {
           tags: [],
           typeKeywords: ["Solution", "Template", "solutionid-3ef", "solutionversion-1.0", "bar"],
           accessInformation: "",
+          categories: [],
+          licenseInfo: ""
         } as any,
         data: {
           metadata: {},
