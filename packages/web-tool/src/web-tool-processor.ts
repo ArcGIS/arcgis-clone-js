@@ -277,7 +277,7 @@ export async function getNotebookServerCreateServiceURL(
 ): Promise<string> {
   const notebookUrl = templateDictionary.isPortal
     ? await getNotebookEnterpriseServerRootURL(portalBaseUrl, authentication)
-    : templateDictionary?.portalUrls?.notebooks.https.length > 0
+    : templateDictionary.portalUrls?.notebooks.https.length > 0
       ? templateDictionary.portalUrls.notebooks.https[0]
       : "";
 
