@@ -205,51 +205,108 @@ export function createWebTool(
   destinationAuthentication: common.UserSession,
 ): Promise<any> {
   return new Promise<any>((resolve, reject) => {
-    if (templateDictionary?.portalUrls?.notebooks.https.length > 0) {
-      const notebookUrl = templateDictionary.portalUrls.notebooks.https[0];
-      const url = `https://${notebookUrl}/admin/services/createService?f=json&request.preventCache=${Date.now()}`;
-
-      const params = {
-        serviceProperties: {
-          description: template.item.description,
-          provider: "notebooks",
-          type: "GPServer",
-          jsonProperties: {
-            timeoutInMinutes: template.data.timeoutInMinutes,
-            title: template.item.title,
-            notebookId: template.data.notebookId,
-            tasks: [
-              {
-                type: "notebook",
-                name: template.data.name,
+    getNotebookServerCreateServiceURL(
+      templateDictionary.portalBaseUrl,
+      destinationAuthentication,
+      templateDictionary,
+    ).then(
+      (url) => {
+        if (url) {
+          const params = {
+            serviceProperties: {
+              description: template.item.description,
+              provider: "notebooks",
+              type: "GPServer",
+              jsonProperties: {
+                timeoutInMinutes: template.data.timeoutInMinutes,
+                title: template.item.title,
+                notebookId: template.data.notebookId,
+                tasks: [
+                  {
+                    type: "notebook",
+                    name: template.data.name,
+                  },
+                ],
               },
-            ],
-          },
-        },
-      };
+            },
+          };
 
-      const requestOptions = {
-        httpMethod: "POST",
-        authentication: destinationAuthentication,
-        params,
-        headers: {
-          "Accept": "application/json",
-          "Authorization": `Bearer ${destinationAuthentication.token}`,
-          "Content-Type": "application/json",
-          "X-Esri-Authorization": `Bearer ${destinationAuthentication.token}`,
-        },
-      } as common.IRequestOptions;
+          const requestOptions = {
+            httpMethod: "POST",
+            authentication: destinationAuthentication,
+            params,
+            headers: {
+              "Accept": "application/json",
+              "Authorization": `Bearer ${destinationAuthentication.token}`,
+              "Content-Type": "application/json",
+              "X-Esri-Authorization": `Bearer ${destinationAuthentication.token}`,
+            },
+          } as common.IRequestOptions;
 
-      common.request(url, requestOptions).then(
-        (response) => {
-          resolve(response);
-        },
-        (e) => {
-          reject(e);
-        },
-      );
-    } else {
-      reject();
-    }
+          common.request(url, requestOptions).then(
+            (response) => {
+              resolve(response);
+            },
+            (e) => {
+              reject(e);
+            },
+          );
+        } else {
+          reject();
+        }
+      },
+      (e) => {
+        reject(e);
+      },
+    );
   });
+}
+
+/**
+ * Get the URL for the Notebook server in Enterprise.
+ *
+ * @param portalBaseUrl URL of the portal endpoint, e.g., "https://gisserver.domain.com/server"
+ * @param authentication Credentials for the request to AGO
+ * @returns URL for the Notebook server Enterprise application (e.g., "https://abc123.esri.com:6443/gis"),
+ * or an empty string if Notebook server is not installed
+ */
+export async function getNotebookServerCreateServiceURL(
+  portalBaseUrl: string,
+  authentication: common.UserSession,
+  templateDictionary: any,
+): Promise<string> {
+  const notebookUrl = templateDictionary.isPortal
+    ? await getNotebookEnterpriseServerRootURL(portalBaseUrl, authentication)
+    : templateDictionary.portalUrls?.notebooks.https.length > 0
+      ? templateDictionary.portalUrls.notebooks.https[0]
+      : "";
+
+  return notebookUrl && templateDictionary.isPortal
+    ? `${notebookUrl}/admin/services/createService?f=json&request.preventCache=${Date.now()}`
+    : notebookUrl
+      ? `https://${notebookUrl}/admin/services/createService?f=json&request.preventCache=${Date.now()}`
+      : "";
+}
+
+/**
+ * Get the URL for the Notebook server in Enterprise.
+ *
+ * @param portalBaseUrl URL of the portal endpoint, e.g., "https://gisserver.domain.com/server"
+ * @param authentication Credentials for the request to AGO
+ * @returns URL for the Notebook server Enterprise application (e.g., "https://abc123.esri.com:6443/gis"),
+ * or an empty string if Notebook server is not installed
+ */
+export async function getNotebookEnterpriseServerRootURL(
+  portalBaseUrl: string,
+  authentication: common.UserSession,
+): Promise<string> {
+  // Get the servers
+  const servers = await common.getEnterpriseServers(`${portalBaseUrl}/sharing/rest`, authentication);
+
+  // Find the Notebook server
+  const notebookServer = servers.find((s: any) => s.serverFunction.indexOf("NotebookServer") > -1);
+  if (!notebookServer) {
+    return "";
+  }
+  return notebookServer.url as string;
 }
