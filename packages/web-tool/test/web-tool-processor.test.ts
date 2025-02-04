@@ -154,7 +154,7 @@ describe("Module `web-tool-processor`: ", () => {
     });
 
     it("can handle error on getEnterpriseServers", async () => {
-      const getEnterpriseServersSpy = spyOn(common, "getEnterpriseServers").and.throwError("error")
+      const getEnterpriseServersSpy = spyOn(common, "getEnterpriseServers").and.throwError("error");
 
       await WebToolProcessor.createItemFromTemplate(
         {
@@ -170,7 +170,7 @@ describe("Module `web-tool-processor`: ", () => {
           },
         } as any,
         {
-          isPortal: true
+          isPortal: true,
         },
         MOCK_USER_SESSION,
         cb,
@@ -679,65 +679,64 @@ describe("Module `web-tool-processor`: ", () => {
       const notebookBaseUrl = "https://RQALnxBI01NB.esri.com/gis";
       const getEnterpriseServersSpy = spyOn(common, "getEnterpriseServers").and.resolveTo([
         {
-          "id": "e0d0rP32Fai4ToC3",
-          "name": "RQALnxBI01Sv.esri.com:6443",
-          "adminUrl": "https://RQALnxBI01Sv.esri.com:6443/arcgis",
-          "url": "https://RQALnxBI01Sv.esri.com/gis",
-          "isHosted": true,
-          "serverType": "ArcGIS",
-          "serverRole": "HOSTING_SERVER",
-          "serverFunction": "KnowledgeServer,WorkflowManager"
+          id: "e0d0rP32Fai4ToC3",
+          name: "RQALnxBI01Sv.esri.com:6443",
+          adminUrl: "https://RQALnxBI01Sv.esri.com:6443/arcgis",
+          url: "https://RQALnxBI01Sv.esri.com/gis",
+          isHosted: true,
+          serverType: "ArcGIS",
+          serverRole: "HOSTING_SERVER",
+          serverFunction: "KnowledgeServer,WorkflowManager",
         },
         {
-          "id": "U5yshUHhJkWINozX",
-          "name": "RQALnxBI01NB.esri.com:11443",
-          "adminUrl": "https://RQALnxBI01NB.esri.com:11443/arcgis",
-          "url": notebookBaseUrl,
-          "isHosted": false,
-          "serverType": "ARCGIS_NOTEBOOK_SERVER",
-          "serverRole": "FEDERATED_SERVER",
-          "serverFunction": "NotebookServer"
-        }
+          id: "U5yshUHhJkWINozX",
+          name: "RQALnxBI01NB.esri.com:11443",
+          adminUrl: "https://RQALnxBI01NB.esri.com:11443/arcgis",
+          url: notebookBaseUrl,
+          isHosted: false,
+          serverType: "ARCGIS_NOTEBOOK_SERVER",
+          serverRole: "FEDERATED_SERVER",
+          serverFunction: "NotebookServer",
+        },
       ]);
 
       return WebToolProcessor.getNotebookServerCreateServiceURL(
         "https://gisserver.domain.com/server",
         MOCK_USER_SESSION,
         {
-          isPortal: true
-        }
+          isPortal: true,
+        },
       ).then(
         (url) => {
           expect(getEnterpriseServersSpy.calls.count()).toBe(1);
-          expect(url.startsWith(
-            `${notebookBaseUrl}/admin/services/createService?f=json&request.preventCache=`
-          )).toBe(true);
+          expect(url.startsWith(`${notebookBaseUrl}/admin/services/createService?f=json&request.preventCache=`)).toBe(
+            true,
+          );
         },
         () => fail(),
       );
     });
 
-
     it("should handle missing Enterprise server", async () => {
       const getEnterpriseServersSpy = spyOn(common, "getEnterpriseServers").and.resolveTo([
         {
-          "id": "e0d0rP32Fai4ToC3",
-          "name": "RQALnxBI01Sv.esri.com:6443",
-          "adminUrl": "https://RQALnxBI01Sv.esri.com:6443/arcgis",
-          "url": "https://RQALnxBI01Sv.esri.com/gis",
-          "isHosted": true,
-          "serverType": "ArcGIS",
-          "serverRole": "HOSTING_SERVER",
-          "serverFunction": "KnowledgeServer,WorkflowManager"
-        }
+          id: "e0d0rP32Fai4ToC3",
+          name: "RQALnxBI01Sv.esri.com:6443",
+          adminUrl: "https://RQALnxBI01Sv.esri.com:6443/arcgis",
+          url: "https://RQALnxBI01Sv.esri.com/gis",
+          isHosted: true,
+          serverType: "ArcGIS",
+          serverRole: "HOSTING_SERVER",
+          serverFunction: "KnowledgeServer,WorkflowManager",
+        },
       ]);
 
       return WebToolProcessor.getNotebookServerCreateServiceURL(
         "https://gisserver.domain.com/server",
         MOCK_USER_SESSION,
         {
-          isPortal: true
-        }
+          isPortal: true,
+        },
       ).then(
         (url) => {
           expect(getEnterpriseServersSpy.calls.count()).toBe(1);
@@ -751,7 +750,7 @@ describe("Module `web-tool-processor`: ", () => {
       return WebToolProcessor.getNotebookServerCreateServiceURL(
         "https://gisserver.domain.com/server",
         MOCK_USER_SESSION,
-        {}
+        {},
       ).then(
         (url) => {
           expect(url).toBe("");
@@ -759,6 +758,5 @@ describe("Module `web-tool-processor`: ", () => {
         () => fail(),
       );
     });
-
   });
 });
