@@ -102,11 +102,7 @@ export async function createSolution(
           getItemBase(sourceId, srcAuthentication).then(
             // Update the createOptions with values from the item
             (itemBase) => {
-              if (
-                itemBase?.type === "Solution" &&
-                itemBase?.typeKeywords &&
-                itemBase?.typeKeywords.includes("Deployed")
-              ) {
+              if (itemBase.type === "Solution" && itemBase.typeKeywords && itemBase.typeKeywords.includes("Deployed")) {
                 _updateCreateOptionForReDeployedTemplate(sourceId, srcAuthentication, createOptions, itemBase).then(
                   (modifiedCreateOptions) => {
                     resolve(_applySourceToCreateOptions(modifiedCreateOptions, itemBase, srcAuthentication, false));
@@ -389,73 +385,67 @@ export async function _updateCreateOptionForReDeployedTemplate(
   createOptions: ICreateSolutionOptions,
   itemBase: IItem,
 ): Promise<ICreateSolutionOptions> {
-  try {
-    const itemData = await getItemDataAsJson(sourceId, authentication);
+  const itemData = await getItemDataAsJson(sourceId, authentication);
 
-    if (itemData) {
-      const checkExistsList = [];
-      //Check if any of the item ids is deleted, if so remove from the list
-      for (const template of itemData.templates) {
-        if (template.type === "Group") {
-          checkExistsList.push(getGroup(template.itemId, { authentication: authentication }));
-        } else {
-          checkExistsList.push(getItem(template.itemId, { authentication: authentication }));
-        }
+  if (itemData) {
+    const checkExistsList = [];
+    //Check if any of the item ids is deleted, if so remove from the list
+    for (const template of itemData.templates) {
+      if (template.type === "Group") {
+        checkExistsList.push(getGroup(template.itemId, { authentication: authentication }));
+      } else {
+        checkExistsList.push(getItem(template.itemId, { authentication: authentication }));
       }
-      const itemFetches = await Promise.allSettled(checkExistsList);
-
-      //Add all valid items to createOptions items list
-      createOptions.itemIds = itemFetches
-        .filter((item: any) => item.status === "fulfilled")
-        .map((item: any) => item.value.id);
-
-      //check if any new groups were made and store in the tag
-      const newGroups = itemBase.tags.filter((str) => str.includes("group.")).map((str) => str.split(".")[1]);
-
-      if (newGroups.length > 0) {
-        newGroups.forEach((groupId) => {
-          // If id does not already exist, push it to createOptions, itemids list.
-          if (!createOptions.itemIds.includes(groupId)) {
-            createOptions.itemIds.push(groupId);
-          }
-        });
-      }
-
-      //query the folder for new items
-      try {
-        const response = await searchItems({
-          q: `ownerfolder:${itemBase.ownerFolder}`,
-          authentication: authentication,
-          num: 100,
-          sortField: "modified",
-          sortOrder: "desc",
-        });
-
-        response.results.forEach((result) => {
-          // See if there are new items in the folder, if so add them to the itemIds
-          if (!createOptions.itemIds.includes(result.id) && result.type !== "Solution") {
-            createOptions.itemIds.push(result.id);
-          }
-        });
-      } catch (error) {
-        // Handle any errors
-        console.error("An error occurred during the search:", error);
-      }
-
-      //switch thhe Deployed keyword to Template
-      const deployedIndex = itemBase.typeKeywords.indexOf("Deployed");
-      if (deployedIndex !== -1) {
-        itemBase.typeKeywords[deployedIndex] = "Template";
-      }
-
-      //remove any tags with group. since it's now a new solution.
-      itemBase.tags = itemBase.tags.filter((tag) => !tag.includes("group."));
-    } else {
-      console.error("Item data does not exists:");
-      return createOptions;
     }
-  } catch (error) {
-    console.error("An error occurred during get item data:", error);
+    const itemFetches = await Promise.allSettled(checkExistsList);
+
+    //Add all valid items to createOptions items list
+    createOptions.itemIds = itemFetches
+      .filter((item: any) => item.status === "fulfilled")
+      .map((item: any) => item.value.id);
+
+    //check if any new groups were made and store in the tag
+    const newGroups = itemBase.tags.filter((str) => str.includes("group.")).map((str) => str.split(".")[1]);
+
+    if (newGroups.length > 0) {
+      newGroups.forEach((groupId) => {
+        // If id does not already exist, push it to createOptions, itemids list.
+        if (!createOptions.itemIds.includes(groupId)) {
+          createOptions.itemIds.push(groupId);
+        }
+      });
+    }
+
+    if (itemBase.ownerFolder) {
+      //query the folder for new items
+      const response = await searchItems({
+        q: `ownerfolder:${itemBase.ownerFolder}`,
+        authentication: authentication,
+        num: 100,
+        sortField: "modified",
+        sortOrder: "desc",
+      });
+
+      response.results.forEach((result) => {
+        // See if there are new items in the folder, if so add them to the itemIds
+        if (!createOptions.itemIds.includes(result.id) && result.type !== "Solution") {
+          createOptions.itemIds.push(result.id);
+        }
+      });
+    }
+
+    //switch thhe Deployed keyword to Template
+    createOptions.typeKeywords = itemBase.typeKeywords;
+    const deployedIndex = createOptions.typeKeywords.indexOf("Deployed");
+    if (deployedIndex !== -1) {
+      createOptions.typeKeywords[deployedIndex] = "Template";
+    }
+
+    //remove any tags with group. since it's now a new solution.
+    createOptions.tags = itemBase.tags;
+    createOptions.tags = itemBase.tags.filter((tag) => !tag.includes("group."));
+  } else {
+    console.error("Item data does not exists, returning create options");
   }
 
   return createOptions;

@@ -597,6 +597,105 @@ describe("Module `creator`", () => {
       expect((addSolnCall[0][1]["body"] as FormData).get("title")).toEqual(solutionName);
     });
 
+    it("createSolution from deployed solution", async () => {
+      const solutionItemId: string = "itm1234567890";
+      const authentication: common.UserSession = MOCK_USER_SESSION;
+      const expectedSolutionId = "sln1234567890";
+      const expectedImage = utils.getSampleImageAsBlob();
+
+      fetchMock
+        .get(utils.PORTAL_SUBSET.restUrl + "/community/self?f=json&token=fake-token", utils.getUserResponse())
+        .get(utils.PORTAL_SUBSET.restUrl + "/portals/self?f=json&token=fake-token", utils.getPortalsSelfResponse())
+        .get(
+          utils.PORTAL_SUBSET.restUrl + "/portals/self/subscriptioninfo?f=json&token=fake-token",
+          mockItems.getAGOLSubscriptionInfo(false),
+        )
+        .post(
+          utils.PORTAL_SUBSET.restUrl + "/content/users/casey/addItem",
+          utils.getSuccessResponse({ id: "sln1234567890", folder: null }),
+        )
+        .get(
+          utils.PORTAL_SUBSET.restUrl + "/community/groups/itm1234567890?f=json&token=fake-token",
+          mockItems.get400Failure(),
+        )
+        .get(
+          utils.PORTAL_SUBSET.restUrl + "/content/groups/itm1234567890?f=json&start=1&num=100&token=fake-token",
+          mockItems.get400Failure(),
+        )
+        .get(
+          utils.PORTAL_SUBSET.restUrl + "/community/groups/undefined?f=json&token=fake-token",
+          mockItems.get400Failure(),
+        )
+        .get(
+          utils.PORTAL_SUBSET.restUrl + "/content/items/undefined?f=json&token=fake-token",
+          mockItems.get400Failure(),
+        )
+        .get(utils.PORTAL_SUBSET.restUrl + "/content/items/itm1234567890?f=json&token=fake-token", {
+          ...mockItems.getAGOLItem("Solution"),
+          typeKeywords: ["Deployed"],
+        })
+        .post(utils.PORTAL_SUBSET.restUrl + "/content/items/itm1234567890/info/smile.png?w=400", expectedImage)
+        .get(
+          utils.PORTAL_SUBSET.restUrl +
+            "/search?f=json&q=ownerfolder%3Afld123456789&num=100&sortField=modified&sortOrder=desc&token=fake-token",
+          utils.getSuccessResponse({ results: [] }),
+        )
+        .post(
+          utils.PORTAL_SUBSET.restUrl + "/content/users/casey/items/sln1234567890/update",
+          utils.getSuccessResponse({ itemId: "sln1234567890" }),
+        )
+        .post(
+          utils.PORTAL_SUBSET.restUrl + "/content/users/casey/items/sln1234567890/delete",
+          utils.getSuccessResponse({ itemId: "sln1234567890" }),
+        );
+
+      const options: common.ICreateSolutionOptions = {
+        title: "the item title",
+        snippet: "the item snippet",
+        description: "the item desc",
+        tags: ["the item tags"],
+        itemIds: ["12345"],
+        typeKeywords: ["Solution", "Template"],
+        progressCallback: () => {},
+      };
+      const sourceItem = {
+        id: solutionItemId,
+        title: "the item title",
+        snippet: "the item snippet",
+        description: "the item desc",
+        tags: ["the item tags", "group.12345"],
+        thumbnail: "smile.png",
+        type: "Solution",
+        typeKeywords: ["Deployed"],
+        owner: "Fred",
+        created: 1,
+        modified: 2,
+        numViews: 3,
+        size: 4,
+        ownerFolder: "fld123456789",
+      } as common.IItem;
+
+      const itemAsJson = {
+        templates: [
+          {
+            itemid: "4gh",
+            type: "feature",
+          },
+          {
+            itemid: "4gh1",
+            type: "Group",
+          },
+        ],
+      };
+
+      //spyOn(common, "getItemBase").and.callFake(() => Promise.resolve(sourceItem));
+      spyOn(common, "getItemBase").and.resolveTo(sourceItem);
+      spyOn(common, "getItemDataAsJson").and.callFake(() => Promise.resolve(itemAsJson));
+
+      const solutionId = await creator.createSolution(solutionItemId, authentication, authentication, options);
+      expect(solutionId).toEqual(expectedSolutionId);
+    });
+
     it("createSolution fails to get item or group", async () => {
       const itemIds: string = "itm1234567890";
       const authentication: common.UserSession = MOCK_USER_SESSION;
@@ -978,6 +1077,11 @@ describe("Module `creator`", () => {
         thumbnailurl: "https://some.com/thumbnail.jpg",
         additionalTypeKeywords: ["foo"],
         tags: ["deploy.id.3ef"],
+        licenseInfo: "arcgis",
+        properties: {
+          schemaVersion: common.CURRENT_SCHEMA_VERSION,
+          relatedSolutions: ["123456"],
+        },
       };
       const chk = creator._createSolutionItemModel(opts);
       expect(chk).toEqual({
@@ -988,13 +1092,14 @@ describe("Module `creator`", () => {
           description: opts.description,
           properties: {
             schemaVersion: common.CURRENT_SCHEMA_VERSION,
+            relatedSolutions: ["123456"],
           },
           thumbnailurl: opts.thumbnailurl,
           tags: [],
           typeKeywords: ["Solution", "Template", "solutionid-3ef", "solutionversion-1.0", "foo"],
           accessInformation: "",
           categories: [],
-          licenseInfo: ""
+          licenseInfo: "arcgis",
         } as any,
         data: {
           metadata: {},
@@ -1024,7 +1129,7 @@ describe("Module `creator`", () => {
           tags: [],
           accessInformation: "",
           categories: [],
-          licenseInfo: ""
+          licenseInfo: "",
         } as any,
         data: {
           metadata: {},
@@ -1058,13 +1163,200 @@ describe("Module `creator`", () => {
           typeKeywords: ["Solution", "Template", "solutionid-3ef", "solutionversion-1.0", "bar"],
           accessInformation: "",
           categories: [],
-          licenseInfo: ""
+          licenseInfo: "",
         } as any,
         data: {
           metadata: {},
           templates: [],
         },
       } as hubCommon.IModel);
+    });
+  });
+
+  describe("_updateCreateOptionForReDeployedTemplate", () => {
+    it("updates createOptions with solution as base", async () => {
+      const sourceItem = {
+        id: "3ef",
+        title: "the item title",
+        snippet: "the item snippet",
+        description: "the item desc",
+        tags: ["the item tags", "group.12345"],
+        thumbnail: "smile.png",
+        type: "Solution",
+        typeKeywords: ["Deployed"],
+        owner: "Fred",
+        created: 1,
+        modified: 2,
+        numViews: 3,
+        ownerFolder: "fld1234567890",
+        size: 4,
+      } as common.IItem;
+
+      const itemAsJson = {
+        templates: [
+          {
+            itemid: "4gh",
+            type: "feature",
+          },
+          {
+            itemid: "4gh1",
+            type: "Group",
+          },
+        ],
+      };
+
+      const fetchedItem = {
+        id: "4gh",
+        title: "a fake feature item",
+        snippet: "fake snippet",
+        description: "the item desc",
+        tags: [],
+        thumbnail: "smile.png",
+        type: "feature",
+        typeKeywords: [],
+        owner: "Fred",
+        created: 1,
+        modified: 2,
+        numViews: 3,
+        size: 4,
+      } as common.IItem;
+
+      const fetchedGroup = {
+        id: "4gh1",
+        title: "the group title",
+        snippet: "the group snippet",
+        description: "the group desc",
+        tags: ["the group tags"],
+        thumbnail: "smile.png",
+      } as common.IGroup;
+
+      const searchedItem = {
+        id: "5ij",
+        title: "a fake feature item",
+        snippet: "fake snippet",
+        description: "the item desc",
+        tags: [],
+        thumbnail: "smile.png",
+        type: "feature",
+        typeKeywords: [],
+        owner: "Fred",
+        created: 1,
+        modified: 2,
+        numViews: 3,
+        size: 4,
+      } as common.IItem;
+
+      const searchResults: common.ISearchResult<common.IItem> = {
+        nextStart: 10,
+        num: 100,
+        query: "",
+        results: [searchedItem],
+        start: 1,
+        total: 100,
+      };
+
+      const createOptions = {
+        title: "the item title",
+        snippet: "the item snippet",
+        description: "the item desc",
+        tags: ["the item tags"],
+        itemIds: [],
+        typeKeywords: [],
+      };
+
+      const optionsResult: common.ICreateSolutionOptions = {
+        title: "the item title",
+        snippet: "the item snippet",
+        description: "the item desc",
+        tags: ["the item tags"],
+        itemIds: ["4gh", "4gh1", "12345", "5ij"],
+        typeKeywords: ["Template"],
+      };
+
+      spyOn(common, "getItemDataAsJson").and.callFake(() => Promise.resolve(itemAsJson));
+      spyOn(common, "getItem").and.callFake(() => Promise.resolve(fetchedItem));
+      spyOn(common, "getGroup").and.callFake(() => Promise.resolve(fetchedGroup));
+      spyOn(common, "searchItems").and.callFake(() => Promise.resolve(searchResults));
+
+      const chk = await creator._updateCreateOptionForReDeployedTemplate(
+        sourceItem.id,
+        MOCK_USER_SESSION,
+        createOptions,
+        sourceItem,
+      );
+      expect(chk).toEqual(optionsResult);
+    });
+    it("does not find the item data", async () => {
+      const sourceItem = {
+        id: "3ef",
+        title: "the item title",
+        snippet: "the item snippet",
+        description: "the item desc",
+        tags: ["the item tags", "group.12345"],
+        thumbnail: "smile.png",
+        type: "Solution",
+        typeKeywords: ["Deployed"],
+        owner: "Fred",
+        created: 1,
+        modified: 2,
+        numViews: 3,
+        size: 4,
+      } as common.IItem;
+
+      const createOptions = {
+        title: "the item title",
+        snippet: "the item snippet",
+        description: "the item desc",
+        tags: ["the item tags"],
+        itemIds: [],
+        typeKeywords: [],
+      };
+
+      spyOn(common, "getItemDataAsJson").and.callFake(() => Promise.resolve(null));
+
+      const chk = await creator._updateCreateOptionForReDeployedTemplate(
+        sourceItem.id,
+        MOCK_USER_SESSION,
+        createOptions,
+        sourceItem,
+      );
+      expect(chk).toEqual(createOptions);
+    });
+    it("canot get Item Data", async () => {
+      const sourceItem = {
+        id: "3ef",
+        title: "the item title",
+        snippet: "the item snippet",
+        description: "the item desc",
+        tags: ["the item tags", "group.12345"],
+        thumbnail: "smile.png",
+        type: "Solution",
+        typeKeywords: ["Deployed"],
+        owner: "Fred",
+        created: 1,
+        modified: 2,
+        numViews: 3,
+        size: 4,
+      } as common.IItem;
+
+      const createOptions = {
+        title: "the item title",
+        snippet: "the item snippet",
+        description: "the item desc",
+        tags: ["the item tags"],
+        itemIds: [],
+        typeKeywords: [],
+      };
+
+      spyOn(console, "error").and.callFake(() => {});
+
+      const chk = await creator._updateCreateOptionForReDeployedTemplate(
+        sourceItem.id,
+        MOCK_USER_SESSION,
+        createOptions,
+        sourceItem,
+      );
+      expect(chk).toEqual(createOptions);
     });
   });
 
