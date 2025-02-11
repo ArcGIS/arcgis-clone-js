@@ -379,6 +379,15 @@ export function _getDeploymentProperty(desiredTagPrefix: string, tags: string[])
   }
 }
 
+/**
+ * Updates the createOptions based on rules with dealing with a deployed solution being re-templatized.
+ *
+ * @param sourceId AGO id of the deployed solution item
+ * @param authentication Credentials for requests to source items
+ * @param createOptions Customizations for creating the solution
+ * @param itemBase the base information of the deployed solution item
+ * @returns A promise that resolves with an updated createOptions
+ */
 export async function _updateCreateOptionForReDeployedTemplate(
   sourceId: string,
   authentication: UserSession,
