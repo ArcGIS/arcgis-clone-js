@@ -54,7 +54,7 @@ function go () {
     portal: srcPortal
   });
 
-  // Dest credentials  (uncomment this and html if you want to target different org for test purproses)
+  // Dest credentials
   const destHtmlValue = htmlUtil.getHTMLValue("destPortal");
   const destPortalStr = destHtmlValue.endsWith('/') ? destHtmlValue.slice(0, -1) : destHtmlValue;
   const destPortal = (destPortalStr || "https://www.arcgis.com") + "/sharing/rest";
