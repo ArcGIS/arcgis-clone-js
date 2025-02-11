@@ -54,21 +54,11 @@ function go () {
     portal: srcPortal
   });
 
-  // Dest credentials
-  const destHtmlValue = htmlUtil.getHTMLValue("destPortal");
-  const destPortalStr = destHtmlValue.endsWith('/') ? destHtmlValue.slice(0, -1) : destHtmlValue;
-  const destPortal = (destPortalStr || "https://www.arcgis.com") + "/sharing/rest";
-  const destCreds = new common.UserSession({
-    username: htmlUtil.getHTMLValue("destUsername"),
-    password: htmlUtil.getHTMLValue("destPassword"),
-    portal: destPortal
-  });
-
   // Create!
   main.createSolution(
     id,
     srcCreds,
-    destCreds,
+    srcCreds,
     percentDone => {
       document.getElementById("output").innerHTML = "Creating..." + percentDone.toFixed().toString() + "%";
     },

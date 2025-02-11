@@ -29,9 +29,12 @@ import {
   generateSourceThumbnailUrl,
   getBlobAsFile,
   getFilenameFromUrl,
+  getGroup,
   getGroupBase,
   getGroupContents,
+  getItem,
   getItemBase,
+  getItemDataAsJson,
   getPortal,
   getSubgroupIds,
   getUser,
@@ -43,6 +46,7 @@ import {
   IItem,
   removeItem,
   sanitizeJSON,
+  searchItems,
   setLocationTrackingEnabled,
   UserSession,
 } from "@esri/solution-common";
@@ -97,7 +101,18 @@ export async function createSolution(
           createOptions.itemIds = [sourceId];
           getItemBase(sourceId, srcAuthentication).then(
             // Update the createOptions with values from the item
-            (itemBase) => resolve(_applySourceToCreateOptions(createOptions, itemBase, srcAuthentication, false)),
+            (itemBase) => {
+              if (itemBase.type === "Solution" && itemBase.typeKeywords && itemBase.typeKeywords.includes("Deployed")) {
+                _updateCreateOptionForReDeployedTemplate(sourceId, srcAuthentication, createOptions, itemBase).then(
+                  (modifiedCreateOptions) => {
+                    resolve(_applySourceToCreateOptions(modifiedCreateOptions, itemBase, srcAuthentication, false));
+                  },
+                  reject,
+                );
+              } else {
+                resolve(_applySourceToCreateOptions(createOptions, itemBase, srcAuthentication, false));
+              }
+            },
             reject,
           );
         });
@@ -163,8 +178,20 @@ export function _applySourceToCreateOptions(
 ): ICreateSolutionOptions {
   // Create a solution from the group's or item's contents,
   // using the group's or item's information as defaults for the solution item
-  ["title", "snippet", "description", "tags"].forEach((prop) => {
-    createOptions[prop] = createOptions[prop] ?? sourceInfo[prop];
+  [
+    "title",
+    "snippet",
+    "description",
+    "tags",
+    "properties",
+    "accessInformation",
+    "licenseInfo",
+    "categories",
+    "typeKeywords",
+  ].forEach((prop) => {
+    if (createOptions[prop] !== undefined || sourceInfo[prop] !== undefined) {
+      createOptions[prop] = createOptions[prop] ?? sourceInfo[prop];
+    }
   });
 
   if (!createOptions.thumbnailurl && sourceInfo.thumbnail) {
@@ -290,15 +317,18 @@ export function _createSolutionItemModel(options: any): IModel {
 
   const solutionItem: any = {
     type: "Solution",
+    accessInformation: options?.accessInformation ?? "",
     title: options?.title ?? createShortId(),
     snippet: options?.snippet ?? "",
     description: options?.description ?? "",
-    properties: {
+    properties: options?.properties ?? {
       schemaVersion: CURRENT_SCHEMA_VERSION,
     },
     thumbnailurl: options?.thumbnailurl ?? "",
     tags: creationTags.filter((tag: any) => !tag.startsWith("deploy.")),
-    typeKeywords: ["Solution", "Template"].concat(_getDeploymentProperties(creationTags)),
+    typeKeywords: options?.typeKeywords ?? ["Solution", "Template"].concat(_getDeploymentProperties(creationTags)),
+    categories: options?.categories ?? [],
+    licenseInfo: options?.licenseInfo ?? "",
   };
 
   // ensure that snippet and description are not nefarious
@@ -347,4 +377,85 @@ export function _getDeploymentProperty(desiredTagPrefix: string, tags: string[])
   } else {
     return null;
   }
+}
+
+/**
+ * Updates the createOptions based on rules with dealing with a deployed solution being re-templatized.
+ *
+ * @param sourceId AGO id of the deployed solution item
+ * @param authentication Credentials for requests to source items
+ * @param createOptions Customizations for creating the solution
+ * @param itemBase the base information of the deployed solution item
+ * @returns A promise that resolves with an updated createOptions
+ */
+export async function _updateCreateOptionForReDeployedTemplate(
+  sourceId: string,
+  authentication: UserSession,
+  createOptions: ICreateSolutionOptions,
+  itemBase: IItem,
+): Promise<ICreateSolutionOptions> {
+  const itemData = await getItemDataAsJson(sourceId, authentication);
+
+  if (itemData) {
+    const checkExistsList = [];
+    //Check if any of the item ids is deleted, if so remove from the list
+    for (const template of itemData.templates) {
+      if (template.type === "Group") {
+        checkExistsList.push(getGroup(template.itemId, { authentication: authentication }));
+      } else {
+        checkExistsList.push(getItem(template.itemId, { authentication: authentication }));
+      }
+    }
+    const itemFetches = await Promise.allSettled(checkExistsList);
+
+    //Add all valid items to createOptions items list
+    createOptions.itemIds = itemFetches
+      .filter((item: any) => item.status === "fulfilled")
+      .map((item: any) => item.value.id);
+
+    //check if any new groups were made and store in the tag
+    const newGroups = itemBase.tags.filter((str) => str.includes("group.")).map((str) => str.split(".")[1]);
+
+    if (newGroups.length > 0) {
+      newGroups.forEach((groupId) => {
+        // If id does not already exist, push it to createOptions, itemids list.
+        if (!createOptions.itemIds.includes(groupId)) {
+          createOptions.itemIds.push(groupId);
+        }
+      });
+    }
+
+    if (itemBase.ownerFolder) {
+      //query the folder for new items
+      const response = await searchItems({
+        q: `ownerfolder:${itemBase.ownerFolder}`,
+        authentication: authentication,
+        num: 100,
+        sortField: "modified",
+        sortOrder: "desc",
+      });
+
+      response.results.forEach((result) => {
+        // See if there are new items in the folder, if so add them to the itemIds
+        if (!createOptions.itemIds.includes(result.id) && result.type !== "Solution") {
+          createOptions.itemIds.push(result.id);
+        }
+      });
+    }
+
+    //switch thhe Deployed keyword to Template
+    createOptions.typeKeywords = itemBase.typeKeywords;
+    const deployedIndex = createOptions.typeKeywords.indexOf("Deployed");
+    if (deployedIndex !== -1) {
+      createOptions.typeKeywords[deployedIndex] = "Template";
+    }
+
+    //remove any tags with group. since it's now a new solution.
+    createOptions.tags = itemBase.tags;
+    createOptions.tags = itemBase.tags.filter((tag) => !tag.includes("group."));
+  } else {
+    console.error("Item data does not exists, returning create options");
+  }
+
+  return createOptions;
 }

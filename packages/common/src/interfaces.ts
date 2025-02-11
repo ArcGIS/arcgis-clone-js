@@ -356,10 +356,25 @@ export interface ICreateItemFromTemplateResponse {
  */
 export interface ICreateSolutionOptions {
   /**
+   * Information on who has access to this solution.
+   */
+  accessInformation?: string;
+
+  /**
+   * Descriptive categories to identify this item.
+   */
+  categories?: string[];
+
+  /**
    * Calling-program-supplied id, perhaps used to distinguish between concurrent deployments or deletions;
    * default: id of group used to create Solution
    */
   jobId?: string;
+
+  /**
+   * Licensing information
+   */
+  licenseInfo?: string;
 
   /**
    * Title to be given to created Solution item; defaults: for a group, group title;
@@ -419,6 +434,11 @@ export interface ICreateSolutionOptions {
   progressCallback?: ISolutionProgressCallback;
 
   /**
+   * An object that contains schema version, related solutions and other supporting information.
+   */
+  properties?: any;
+
+  /**
    * Should progress be echoed to the debugging console? default: false
    */
   consoleProgress?: boolean;
@@ -438,6 +458,11 @@ export interface ICreateSolutionOptions {
    * in the top-level group.
    */
   subgroupIds?: string[];
+
+  /**
+   * A list of keywords for this solution. Also used by the application for internal control of deployment.
+   */
+  typeKeywords?: string[];
 }
 
 /**
