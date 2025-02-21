@@ -1138,6 +1138,24 @@ describe("Module `creator`", () => {
       } as hubCommon.IModel);
     });
 
+    it("returns a model, with the same typeKeywords", () => {
+      const opts = {
+        title: "The Title",
+        snippet: "The Snippet",
+        description: "The Desc",
+        thumbnailurl: "https://some.com/thumbnail.jpg",
+        tags: ["deploy.id.3ef"],
+        typeKeywords: ["Solution", "Template", "solutionid-3ef", "solutionversion-1.0", "foo", "bar"],
+        licenseInfo: "arcgis",
+        properties: {
+          schemaVersion: common.CURRENT_SCHEMA_VERSION,
+          relatedSolutions: ["123456"],
+        },
+      };
+      const chk = creator._createSolutionItemModel(opts);
+      expect(chk.item.typeKeywords?.length).toBe(6);
+    });
+
     it("sanitizes the item", () => {
       spyOn(console, "warn").and.callFake(() => {});
       const opts = {

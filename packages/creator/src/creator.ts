@@ -326,7 +326,10 @@ export function _createSolutionItemModel(options: any): IModel {
     },
     thumbnailurl: options?.thumbnailurl ?? "",
     tags: creationTags.filter((tag: any) => !tag.startsWith("deploy.")),
-    typeKeywords: options?.typeKeywords ?? ["Solution", "Template"].concat(_getDeploymentProperties(creationTags)),
+    typeKeywords:
+      !options?.typeKeywords || !options.typeKeywords.some((keyword) => keyword.includes("solutionid"))
+        ? ["Solution", "Template"].concat(_getDeploymentProperties(creationTags))
+        : options.typeKeywords,
     categories: options?.categories ?? [],
     licenseInfo: options?.licenseInfo ?? "",
   };
